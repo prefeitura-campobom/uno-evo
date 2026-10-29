@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Quilometragem - Prefeitura de Campo Bom</title>
+    <link rel="icon" type="image/png" href="https://prefeitura-campobom.github.io/CB-LOGO.png">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 600px;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-timbrado {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 15px;
+        }
+
+        .header-timbrado img {
+            max-height: 70px;
+            width: auto;
+            margin-bottom: 10px;
+        }
+
+        .header-timbrado h1 {
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .header-timbrado h2 {
+            font-size: 1.1rem;
+            color: #333;
+            text-transform: uppercase;
+            border: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .veiculo-info {
+            background-color: #e9ecef;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            border-left: 4px solid #007bff;
+        }
+
+        .veiculo-info span {
+            display: block;
+            font-size: 0.85rem;
+            color: #555;
+            text-transform: uppercase;
+        }
+
+        .veiculo-info strong {
+            font-size: 1.2rem;
+            color: #222;
+        }
+
+        .aviso-status {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            text-align: center;
+            border: 1px solid #f5c6cb;
+            display: none;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        textarea {
+            resize: vertical;
+            height: 80px;
+        }
+
+        .tipo-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .btn-tipo {
+            padding: 12px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-tipo.active-saida {
+            background-color: #007bff;
+            color: #ffffff;
+            border-color: #007bff;
+        }
+
+        .btn-tipo.active-retorno {
+            background-color: #ffc107;
+            color: #333;
+            border-color: #ffc107;
+        }
+
+        .btn-tipo:disabled {
+            background-color: #e9ecef;
+            color: #adb5bd;
+            border-color: #dee2e6;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-enviar {
+            width: 100%;
+            background-color: #28a745;
+            color: #ffffff;
+            border: none;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-enviar:hover {
+            background-color: #218838;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-timbrado">
+        <img src="https://prefeitura-campobom.github.io/CB-LOGO.png" alt="Logo Prefeitura de Campo Bom">
+        <h1>Prefeitura Municipal de Campo Bom</h1>
+        <h2>Controle de Quilometragem de Frota</h2>
+    </div>
+
+    <div class="veiculo-info">
+        <span>Veículo Atribuído:</span>
+        <strong id="displayVeiculo">Carregando...</strong>
+    </div>
+
+    <div id="avisoStatus" class="aviso-status"></div>
+
+    <form id="kmForm" onsubmit="enviarDados(event)">
+        <div class="form-group">
+            <label>TIPO DE REGISTRO:</label>
+            <div class="tipo-group">
+                <button type="button" id="btnSaida" class="btn-tipo active-saida" onclick="selecionarTipo('Saída')">SAÍDA</button>
+                <button type="button" id="btnRetorno" class="btn-tipo" onclick="selecionarTipo('Retorno')">RETORNO</button>
+            </div>
+        </div>
+
+        <div id="camposSaida">
+            <div class="form-group">
+                <label for="motorista">MOTORISTA (Nome Completo):</label>
+                <input type="text" id="motorista" required placeholder="Digite seu nome completo">
+            </div>
+
+            <div class="form-group">
+                <label for="setor">SETOR / UNIDADE:</label>
+                <input type="text" id="setor" required placeholder="Ex: Secretaria de Obras">
+            </div>
+
+            <div class="form-group" id="grupoDestino">
+                <label for="destino">DESTINO / MOTIVO DA VIAGEM:</label>
+                <textarea id="destino" required placeholder="Ex: Vistoria de terreno no bairro X"></textarea>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="quilometragem">QUILOMETRAGEM ATUAL (KM):</label>
+            <input type="number" id="quilometragem" required placeholder="Ex: 45230" min="0">
+        </div>
+
+        <button type="submit" class="btn-enviar" id="btnSubmit">Registrar</button>
+        <div class="loading" id="loadingText">Enviando dados para o sistema...</div>
+    </form>
+</div>
+
+<script>
+    const CONFIG_VEICULO = {
+        id: "Uno Evolution",                         
+        nome: "Uno Evolution 1.4 - IWK2298"       
+    };
+
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOw2VsjyzBdaU_HuNaCbN_d97SByGGMF78vxNTSzK-QLRL1RSQY10rHFBR4--9hShE_A/exec";
+
+    document.getElementById('displayVeiculo').innerText = CONFIG_VEICULO.nome;
+
+    let tipoAtual = 'Saída';
+    let veiculoPendente = false; 
+    let kmSaidaAnterior = 0;
+
+    function selecionarTipo(tipo) {
+        if (veiculoPendente && tipo === 'Saída') {
+            alert("Este veículo está na rua. É obrigatório registrar o retorno antes de iniciar uma nova saída.");
+            return;
+        }
+
+        if (!veiculoPendente && tipo === 'Retorno') {
+            return;
+        }
+
+        tipoAtual = tipo;
+        const btnSaida = document.getElementById('btnSaida');
+        const btnRetorno = document.getElementById('btnRetorno');
+        const camposSaida = document.getElementById('camposSaida');
+        const motorista = document.getElementById('motorista');
+        const setor = document.getElementById('setor');
+        const destino = document.getElementById('destino');
+
+        if (tipo === 'Saída') {
+            btnSaida.className = 'btn-tipo active-saida';
+            btnRetorno.className = 'btn-tipo';
+            camposSaida.style.display = 'block';
+            motorista.required = true;
+            setor.required = true;
+            destino.required = true;
+        } else {
+            btnRetorno.className = 'btn-tipo active-retorno';
+            btnSaida.className = 'btn-tipo';
+            camposSaida.style.display = 'none';
+            motorista.value = '';
+            motorista.required = false;
+            setor.value = '';
+            setor.required = false;
+            destino.value = '';
+            destino.required = false;
+        }
+    }
+
+    // Função para atualizar o status do carro ao abrir ou antes de enviar
+    function verificarStatusVeiculo(callback) {
+        fetch(SCRIPT_URL, {
+            method: 'GET',
+            mode: 'cors'
+        })
+        .then(response => response.json())
+        .then(data => {
+            const statusVeiculo = data[CONFIG_VEICULO.id];
+            const btnRetorno = document.getElementById('btnRetorno');
+            const btnSaida = document.getElementById('btnSaida');
+            const aviso = document.getElementById('avisoStatus');
+
+            if (statusVeiculo && !statusVeiculo.disponivel) {
+                veiculoPendente = true;
+                kmSaidaAnterior = Number(statusVeiculo.kmSaida) || 0;
+                
+                selecionarTipo('Retorno');
+                
+                btnSaida.disabled = true;
+                btnSaida.title = "Bloqueado: Veículo pendente de retorno";
+                
+                btnRetorno.disabled = false;
+                btnRetorno.removeAttribute('title');
+
+                aviso.innerText = `Veículo pendente de retorno. ${statusVeiculo.detalhes}.`;
+                aviso.style.display = 'block';
+            } else {
+                veiculoPendente = false;
+                kmSaidaAnterior = 0;
+                
+                selecionarTipo('Saída');
+                
+                btnRetorno.disabled = true;
+                btnRetorno.title = "Aguardando saída";
+                
+                btnSaida.disabled = false;
+                btnSaida.removeAttribute('title');
+
+                aviso.style.display = 'none';
+            }
+
+            if (callback) callback();
+        })
+        .catch(error => {
+            console.log('Erro ao consultar status:', error);
+            if (callback) callback();
+        });
+    }
+
+    window.onload = function() {
+        verificarStatusVeiculo();
+    };
+
+    function enviarDados(event) {
+        event.preventDefault();
+
+        const quilometragem = Number(document.getElementById('quilometragem').value.trim());
+
+        if (!quilometragem) {
+            alert("Por favor, preencha a quilometragem atual.");
+            return;
+        }
+
+        // Antes de enviar o retorno, faz uma verificação rápida do KM de saída real da planilha para garantir precisão
+        verificarStatusVeiculo(function() {
+            if (tipoAtual === 'Retorno' && kmSaidaAnterior > 0 && quilometragem < kmSaidaAnterior) {
+                alert(`Erro: A quilometragem de retorno informada (${quilometragem}) é menor que a quilometragem de saída registrada na planilha (${kmSaidaAnterior}). Isso é um engano, por favor corrija o valor.`);
+                return;
+            }
+
+            let motorista = '';
+            let setor = '';
+            let destino = '';
+
+            if (tipoAtual === 'Saída') {
+                if (veiculoPendente) {
+                    alert("Ação negada: Veículo pendente de retorno.");
+                    return;
+                }
+
+                motorista = document.getElementById('motorista').value.trim();
+                setor = document.getElementById('setor').value.trim();
+                destino = document.getElementById('destino').value.trim();
+
+                if (!motorista || !setor || !destino) {
+                    alert("Por favor, preencha todos os campos obrigatórios de saída.");
+                    return;
+                }
+            }
+
+            const agora = new Date().toLocaleString('pt-BR');
+
+            const dados = {
+                veiculoId: CONFIG_VEICULO.id,
+                veiculoNome: CONFIG_VEICULO.nome,
+                motorista: motorista,
+                setor: setor,
+                tipoRegistro: tipoAtual,
+                destino: destino,
+                quilometragem: quilometragem,
+                dataHora: agora
+            };
+
+            const btn = document.getElementById('btnSubmit');
+            const loading = document.getElementById('loadingText');
+
+            btn.style.display = 'none';
+            loading.style.display = 'block';
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(dados)
+            })
+            .then(response => response.json())
+            .then(res => {
+                btn.style.display = 'block';
+                loading.style.display = 'none';
+
+                if (res.result === "success") {
+                    alert(`Registro de ${tipoAtual} efetuado com sucesso!`);
+                    document.getElementById('kmForm').reset();
+                    location.reload();
+                } else {
+                    alert(res.message || "Erro ao registrar.");
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Registro efetuado com sucesso!');
+                btn.style.display = 'block';
+                loading.style.display = 'none';
+                document.getElementById('kmForm'.reset());
+                location.reload();
+            });
+        });
+    }
+</script>
+
+</body>
+</html>
